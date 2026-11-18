@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RDL9GFPTH6"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RDL9GFPTH6');
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#4f46e5" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>AI Basics: Rule-Based vs. LLM Chatbot</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .chat-scroll::-webkit-scrollbar { width: 6px; }
+    .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    html.dark body { background-color: #0f172a; color: #e2e8f0; }
+    html.dark header,
+    html.dark section,
+    html.dark .bg-white { background-color: #1e293b !important; color: #e2e8f0; }
+    html.dark .bg-slate-50,
+    html.dark .bg-slate-50\/70,
+    html.dark .bg-slate-50\/50,
+    html.dark .bg-slate-50\/40 { background-color: #0f172a !important; }
+    html.dark .bg-slate-100 { background-color: #334155 !important; color: #e2e8f0; }
+    html.dark .bg-indigo-50\/70 { background-color: #1e1b4b !important; }
+    html.dark .bg-indigo-50 { background-color: #312e81 !important; color: #e0e7ff !important; }
+    html.dark .border-slate-200,
+    html.dark .border-slate-100,
+    html.dark .border-indigo-100,
+    html.dark .border-indigo-200 { border-color: #334155 !important; }
+    html.dark .text-slate-900,
+    html.dark .text-slate-800,
+    html.dark .text-slate-700 { color: #f1f5f9 !important; }
+    html.dark .text-slate-600,
+    html.dark .text-slate-500,
+    html.dark .text-slate-400 { color: #94a3b8 !important; }
+    html.dark .text-indigo-950,
+    html.dark .text-indigo-900\/90,
+    html.dark .text-indigo-700 { color: #c7d2fe !important; }
+    html.dark input,
+    html.dark select,
+    html.dark textarea { background-color: #0f172a !important; color: #f1f5f9 !important; border-color: #475569 !important; }
+    html.dark code.bg-slate-200 { background-color: #334155 !important; color: #e2e8f0; }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Compact Top Header -->
+  <header class="bg-white border-b border-slate-200 px-3 py-2 sm:px-6">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-indigo-600 text-white text-[11px] font-bold">AI</span>
+        <h1 class="text-sm sm:text-base font-bold text-slate-900">Chatbot Basics Lab <span class="text-[10px] font-normal text-slate-400">v4.8</span></h1>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-1.5">
+        <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+          <button id="btn-page-chat" type="button"
+            class="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all bg-white text-indigo-700 shadow-sm">
+            Chat
+          </button>
+          <button id="btn-page-help" type="button"
+            class="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all text-slate-600 hover:text-slate-900">
+            Help
+          </button>
+        </div>
+        <span id="user-badge" class="hidden text-[11px] font-semibold px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200"></span>
+        <button id="btn-signin-header" type="button"
+          class="hidden px-2 py-1 rounded-lg text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors">
+          Sign In
+        </button>
+        <button id="btn-logout" type="button"
+          class="hidden px-2 py-1 rounded-lg text-[11px] font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors">
+          Log Out
+        </button>
+        <button id="btn-dark-mode" type="button"
+          class="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors">
+          Dark Mode
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page 1: Full-Width Large Conversation Page -->
+  <main id="page-chat" class="flex-1 max-w-4xl w-full mx-auto p-2 sm:p-5 flex flex-col">
+
+    <!-- Left Column: Interactive Chat -->
+    <section class="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col min-h-[82vh] overflow-hidden">
+      <!-- Chat Status Bar -->
+      <div class="px-4 py-2.5 border-b border-slate-100 bg-slate-50/70 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+          <span id="status-label" class="text-xs sm:text-sm font-semibold text-slate-700">AI Assistant (Local + Gemini Ready)</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <select id="chat-selector" aria-label="Saved chats on device"
+            class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 max-w-[150px] focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </select>
+          <button id="btn-new-chat" type="button"
+            class="text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-colors">
+            + New Chat
+          </button>
+          <button id="btn-clear" type="button"
+            class="text-xs font-medium text-slate-500 hover:text-rose-600 px-2.5 py-1 rounded-lg hover:bg-rose-50 transition-colors">
+            Clear Chat
+          </button>
+          <button id="btn-undo-clear" type="button"
+            class="hidden text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition-colors">
+            Undo Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Cross-Chat Device Memory Bar -->
+      <div class="px-4 py-1.5 border-b border-slate-100 bg-slate-50/40 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+        <label class="inline-flex items-center gap-1.5 text-slate-600 cursor-pointer select-none">
+          <input id="toggle-cross-chat" type="checkbox" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+          <span><strong>Share Memory Across Chats</strong> (reuse facts from other saved chats)</span>
+        </label>
+        <span id="memory-summary" class="text-slate-400 truncate max-w-[240px]">No cross-chat facts saved yet</span>
+      </div>
+
+      <!-- System Instruction Bar (Visible in LLM Mode) -->
+      <div id="system-prompt-bar" class="px-4 py-3 bg-indigo-50/70 border-b border-indigo-100 space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <label for="system-input" class="text-[11px] font-semibold uppercase tracking-wider text-indigo-700">
+            System Instruction (Role &amp; Rules)
+          </label>
+          <div class="flex flex-wrap gap-1">
+            <button type="button" class="preset-btn text-[11px] font-medium px-2 py-0.5 rounded-md bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors" data-preset="You are a knowledgeable, professional AI Assistant. Provide clear, accurate, and concise answers grounded in the conversation context. If you are unsure of a fact, state that clearly rather than guessing.">Professional</button>
+            <button type="button" class="preset-btn text-[11px] font-medium px-2 py-0.5 rounded-md bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors" data-preset="You are a patient coding tutor. Explain programming and AI concepts step by step using simple analogies.">Coding Tutor</button>
+            <button type="button" class="preset-btn text-[11px] font-medium px-2 py-0.5 rounded-md bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors" data-preset="You are a strict fact-checker. Answer in 1-2 bullet points and refuse to guess any unverified fact.">Fact-Checker</button>
+          </div>
+        </div>
+        <input id="system-input" type="text"
+          value="You are a knowledgeable, professional AI Assistant. Provide clear, accurate, and concise answers grounded in the conversation context. If you are unsure of a fact, state that clearly rather than guessing."
+          class="w-full text-xs sm:text-sm bg-white border border-indigo-200 rounded-lg px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <div class="flex flex-wrap items-center gap-2 pt-0.5">
+          <label for="api-key-input" class="text-[11px] font-semibold text-slate-600 shrink-0">Gemini API Key:</label>
+          <input id="api-key-input" name="gemini_api_key_field" type="password" autocomplete="new-password"
+            placeholder="Paste fresh AI Studio key (leave blank for demo)"
+            class="flex-1 min-w-[160px] text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <select id="model-select" aria-label="Gemini model"
+            class="text-[11px] bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="gemini-3.5-flash-lite" selected>gemini-3.5-flash-lite (Fast)</option>
+            <option value="gemini-3.6-flash">gemini-3.6-flash</option>
+            <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+          </select>
+        </div>
+        <div id="llm-controls" class="flex items-center gap-3 pt-1">
+          <span class="text-[11px] font-semibold text-slate-600 shrink-0">Temperature: <span id="temp-value" class="font-mono text-indigo-600">1</span></span>
+          <input id="temp-slider" type="range" min="0" max="1" step="0.1" value="1"
+            class="flex-1 accent-indigo-600 cursor-pointer" />
+        </div>
+      </div>
+
+      <!-- Messages Area -->
+      <div id="chat-messages" class="flex-1 min-h-[400px] overflow-y-auto p-4 sm:p-5 space-y-3.5 chat-scroll bg-white">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Quick Sample Prompts -->
+      <div class="px-3 py-1.5 border-t border-slate-100 bg-slate-50/50 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap">
+        <span class="text-[11px] font-medium text-slate-400 mr-1">Try:</span>
+        <button type="button" class="quick-prompt text-xs bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-700 px-2.5 py-1 rounded-full transition-colors" data-prompt="Hello!">Hello!</button>
+        <button type="button" class="quick-prompt text-xs bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-700 px-2.5 py-1 rounded-full transition-colors" data-prompt="What is a token?">What is a token?</button>
+        <button type="button" class="quick-prompt text-xs bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-700 px-2.5 py-1 rounded-full transition-colors" data-prompt="Remember my name is Alex">Remember my name is Alex</button>
+        <button type="button" class="quick-prompt text-xs bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-700 px-2.5 py-1 rounded-full transition-colors" data-prompt="What is my name?">What is my name?</button>
+        <button type="button" class="quick-prompt text-xs bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-700 px-2.5 py-1 rounded-full transition-colors" data-prompt="Who won the 2029 Mars Cup?">2029 Mars Cup?</button>
+        <button type="button" class="quick-prompt text-xs bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-700 px-2.5 py-1 rounded-full transition-colors" data-prompt="What is a system instruction?">System instruction?</button>
+        <button type="button" class="quick-prompt text-xs bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-700 px-2.5 py-1 rounded-full transition-colors" data-prompt="How do I add a knowledge source?">Add knowledge (RAG)?</button>
+      </div>
+
+      <!-- Input Form -->
+      <form id="chat-form" class="p-3 sm:p-4 border-t border-slate-200 bg-white flex items-end gap-2">
+        <textarea id="user-input" rows="2" autocomplete="off"
+          placeholder="Type a message here..."
+          class="flex-1 text-base leading-snug border border-slate-300 rounded-xl px-4 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+        <button type="submit"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white text-base font-semibold px-5 py-3 rounded-xl transition-colors shrink-0">
+          Send
+        </button>
+      </form>
+    </section>
+
+  </main>
+
+  <!-- Page 2: Dedicated Help & Guide Page -->
+  <section id="page-help" class="hidden flex-1 max-w-4xl w-full mx-auto p-3 sm:p-6 pb-8 space-y-5">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 class="text-sm sm:text-base font-bold text-slate-900">Backup &amp; Restore Chats</h2>
+        <p class="text-xs text-slate-500">Export, import, or paste your saved conversations anytime.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="btn-export-json" type="button"
+          class="text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors">
+          Export JSON
+        </button>
+        <button id="btn-import-json" type="button"
+          class="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors">
+          Import JSON
+        </button>
+        <button id="btn-paste-json" type="button"
+          class="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors">
+          Paste JSON
+        </button>
+        <input id="import-json-input" type="file" accept=".json,application/json" class="hidden" />
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+      <div class="mb-4">
+        <h2 class="text-base sm:text-lg font-bold text-slate-900">AI Basics Guide: How This App Works</h2>
+        <p class="text-xs sm:text-sm text-slate-500">Every concept below maps directly to the interactive lab and code above.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <article class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <h3 class="text-sm font-bold text-slate-900 mb-1.5">1. How Language Models Work</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            A <strong>Language Model (LLM)</strong> predicts the most likely next piece of text based on patterns learned from massive amounts of writing. Without an API key, this app uses a built-in Local Assistant; paste a Gemini API key to connect directly to live Gemini models.
+          </p>
+        </article>
+
+        <article class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <h3 class="text-sm font-bold text-slate-900 mb-1.5">2. Prompts &amp; System Instructions</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Your typed message is the <strong>user prompt</strong>. The <strong>System Instruction</strong> acts as a behind-the-scenes job description that sets the bot's persona, tone, and rules—try the <em>Professional</em>, <em>Coding Tutor</em>, or <em>Fact-Checker</em> presets above the chat.
+          </p>
+        </article>
+
+        <article class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <h3 class="text-sm font-bold text-slate-900 mb-1.5">3. Tokens &amp; Limits</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Models read and generate text in small chunks called <strong>tokens</strong>—roughly 4 characters or ¾ of an English word each. Both your conversation history and the model's replies count toward token limits and API usage.
+          </p>
+        </article>
+
+        <article class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <h3 class="text-sm font-bold text-slate-900 mb-1.5">4. Context &amp; Cloud Memory</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            LLMs are stateless—they forget everything once a reply finishes. This app saves your messages in <strong>Cloud Firestore</strong> (for signed-in accounts) or on your device (for Guest Mode) and resends your conversation context on every turn.
+          </p>
+        </article>
+
+        <article class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <h3 class="text-sm font-bold text-slate-900 mb-1.5">5. Hallucinations &amp; Temperature</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Because LLMs predict <em>plausible-sounding</em> text rather than checking a verified database, they can invent facts confidently. Raising the <strong>Temperature</strong> slider (toward <code class="bg-slate-200 px-1 rounded">1.0</code>) increases creativity—and hallucination risk.
+          </p>
+        </article>
+
+        <article class="p-4 rounded-xl bg-indigo-50/70 border border-indigo-200">
+          <h3 class="text-sm font-bold text-indigo-950 mb-1.5">6. Accounts, Guest Mode &amp; Backups</h3>
+          <ul class="text-xs text-indigo-900/90 space-y-1.5 list-disc pl-4 leading-relaxed">
+            <li><strong>Cloud Sync:</strong> Sign in with Google or Email/Password to access your chats from any phone or computer.</li>
+            <li><strong>Guest Mode:</strong> Try the chatbot instantly without signing in (saved locally on your device).</li>
+            <li><strong>Backups:</strong> Use <strong>Export JSON</strong>, <strong>Import JSON</strong>, or <strong>Paste JSON</strong> above to save or restore chats anytime.</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cloud Account Login / Sign Up Overlay -->
+  <div id="auth-overlay" class="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-sm w-full p-6 space-y-4">
+      <div class="flex items-center gap-2.5">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600 text-white text-xs font-bold">AI</span>
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Cloud Chatbot Account</h2>
+          <p class="text-xs text-slate-500">Sign in to sync your private chats across any device.</p>
+        </div>
+      </div>
+
+      <button id="btn-google-signin" type="button"
+        class="w-full flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-sm font-semibold py-2.5 rounded-xl transition-colors shadow-sm">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+          <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.91 6.72-4.91z"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="relative flex py-1 items-center">
+        <div class="flex-grow border-t border-slate-200"></div>
+        <span class="flex-shrink mx-3 text-[11px] text-slate-400 uppercase font-semibold">or email</span>
+        <div class="flex-grow border-t border-slate-200"></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <button id="auth-tab-login" type="button"
+          class="py-1.5 rounded-lg text-xs font-semibold bg-white text-indigo-700 shadow-sm">
+          Log In
+        </button>
+        <button id="auth-tab-signup" type="button"
+          class="py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900">
+          Sign Up
+        </button>
+      </div>
+
+      <form id="auth-form" class="space-y-3">
+        <div>
+          <label for="auth-username" class="block text-xs font-semibold text-slate-700 mb-1">Email</label>
+          <input id="auth-username" type="email" autocomplete="email" required
+            placeholder="you@example.com"
+            class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label for="auth-password" class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+          <input id="auth-password" type="password" autocomplete="current-password" required
+            placeholder="At least 6 characters"
+            class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <p id="auth-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"></p>
+        <button id="auth-submit-btn" type="submit"
+          class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors">
+          Log In
+        </button>
+      </form>
+
+      <button id="btn-guest-login" type="button"
+        class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-xl transition-colors border border-slate-200">
+        Continue as Guest (No Sign-In)
+      </button>
+    </div>
+  </div>
+
+  <!-- In-Page Export / Save Modal (works even when mobile webviews block file downloads) -->
+  <div id="export-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 id="modal-title" class="text-sm font-bold text-slate-900">Export Data</h3>
+        <button id="btn-close-modal" type="button" class="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100">Close</button>
+      </div>
+      <p id="modal-desc" class="text-xs text-slate-600"></p>
+      <textarea id="modal-textarea" rows="8"
+        class="w-full text-[11px] font-mono bg-slate-950 text-emerald-300 rounded-xl p-3 focus:outline-none"></textarea>
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <button id="btn-modal-copy" type="button"
+          class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
+          Copy to Clipboard
+        </button>
+        <button id="btn-modal-share" type="button"
+          class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">
+          Share Text
+        </button>
+        <button id="btn-modal-restore" type="button"
+          class="hidden px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+          Restore Pasted JSON
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 2. CONNECTING THE SAME APP TO A LANGUAGE MODEL (LLM)
+    // =========================================================================
+    // In a real app, this function sends your System Instruction + full History
+    // to an LLM API endpoint (like Gemini or OpenAI) using fetch().
+    async function callLanguageModel(systemInstruction, history, temperature) {
+      const apiKeyEl = document.getElementById("api-key-input");
+      const apiKey = apiKeyEl ? apiKeyEl.value.trim() : "";
+      const useCrossChat = document.getElementById("toggle-cross-chat")?.checked ?? true;
+      const lastRawPre = history[history.length - 1].content.trim();
+      const userMsgsPre = history.filter(m => m.role === "user").map(m => m.content);
+      const prevBotPre = [...history].slice(0, -1).reverse().find(m => m.role === "assistant" && !m.isError)?.content || "";
+
+      // Capture name from explicit phrases OR 1-2 word reply right after bot asked for name
+      for (let i = userMsgsPre.length - 1; i >= 0; i--) {
+        const m = userMsgsPre[i].match(/(?:my name is|my name's|call me|i am|i'm)\s+([a-zA-Z]{2,})/i);
+        if (m && !["my", "is", "that", "this", "name", "here", "doing", "learning", "from", "in"].includes(m[1].toLowerCase())) {
+          sharedMemory.name = m[1];
+          break;
+        }
+      }
+      if (/(?:told me your name|tell me your name|haven't shared your name|share your name|know your name)/i.test(prevBotPre)
+          && /^[a-zA-Z]{2,20}(?:\s+[a-zA-Z]{2,20})?$/.test(lastRawPre)) {
+        sharedMemory.name = lastRawPre.split(/\s+/)[0];
+      }
+
+      // If the user provided a Gemini API key, call the live Gemini model with auto-fallback on 503/429!
+      if (apiKey) {
+        const primaryModel = document.getElementById("model-select")?.value || "gemini-3.5-flash-lite";
+        const fallbackOrder = [primaryModel, "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.8-flash"];
+        const modelsToTry = Array.from(new Set(fallbackOrder));
+
+        const cleanHistory = history.filter(m => !m.isError).slice(-20);
+        const contents = cleanHistory.map(m => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }]
+        }));
+
+        const sysText = (() => {
+          if (!useCrossChat) return systemInstruction;
+          const prev = getPreviousConversationsContext();
+          const memParts = [];
+          if (sharedMemory.name) memParts.push(`User's name is ${sharedMemory.name}.`);
+          if (sharedMemory.notes.length) memParts.push(`Notes: ${sharedMemory.notes.join("; ")}`);
+          if (prev.summaryText) memParts.push(`Previous conversations on this device:\n${prev.summaryText}`);
+          return memParts.length ? `${systemInstruction}\n\n${memParts.join("\n")}` : systemInstruction;
+        })();
+
+        let lastErr = "Could not reach Gemini API.";
+        for (const modelName of modelsToTry) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(new Error("Request timed out after 45 seconds")), 45000);
+            const res = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent`,
+              {
+                method: "POST",
+                signal: controller.signal,
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-goog-api-key": apiKey
+                },
+                body: JSON.stringify({
+                  systemInstruction: { parts: [{ text: sysText }] },
+                  contents
+                })
+              }
+            );
+            clearTimeout(timeoutId);
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              const msg = errData?.error?.message || res.statusText || "Request rejected";
+              lastErr = `HTTP ${res.status}: ${msg}`;
+              // Retry with next model automatically on 503 (high demand) or 429 (quota)
+              if (res.status === 503 || res.status === 429) continue;
+              throw new Error(lastErr);
+            }
+            const data = await res.json();
+            const parts = data?.candidates?.[0]?.content?.parts || [];
+            const liveReply = parts.map(p => p.text || "").filter(Boolean).join("\n").trim();
+            if (liveReply) {
+              return {
+                reply: liveReply,
+                trace: `Live Gemini API (${modelName}) · Sent system instruction + ${cleanHistory.length} history messages.`
+              };
+            }
+          } catch (err) {
+            lastErr = err.message || String(err);
+            if (!lastErr.includes("503") && !lastErr.includes("429")) {
+              return {
+                reply: `Could not reach the live Gemini API (${lastErr}). Check your API key or clear it to use the built-in assistant.`,
+                trace: `Live API call failed: ${lastErr}`,
+                isError: true
+              };
+            }
+          }
+        }
+        return {
+          reply: `All Gemini models are currently busy or over quota (${lastErr}). Try again shortly or clear the key to use the built-in assistant.`,
+          trace: `Live API failed across fallback models: ${lastErr}`,
+          isError: true
+        };
+      }
+
+      // Built-in Smart Local Model (runs 100% on your device with zero API key)
+      const lastUserRaw = history[history.length - 1].content.trim();
+      const lastUserMsg = lastUserRaw.toLowerCase();
+      const userMessages = history.filter(m => m.role === "user").map(m => m.content);
+      const sysLower = (systemInstruction || "").toLowerCase();
+
+      // 1. Extract user name & personal facts from conversation + sharedMemory
+      let rememberedName = null;
+      const namePatterns = [
+        /(?:my name is|my name's|call me|i am|i'm)\s+([a-zA-Z]{2,})/i,
+        /remember\s+(?:that\s+)?(?:my name is|my name)?\s*([a-zA-Z]{2,})/i
+      ];
+      for (let i = userMessages.length - 1; i >= 0; i--) {
+        for (const pat of namePatterns) {
+          const m = userMessages[i].match(pat);
+          if (m && !["my", "is", "that", "this", "name", "here", "doing", "learning", "from", "in"].includes(m[1].toLowerCase())) {
+            rememberedName = m[1];
+            break;
+          }
+        }
+        if (rememberedName) break;
+      }
+      const prevAssistantMsg = [...history].slice(0, -1).reverse().find(m => m.role === "assistant")?.content || "";
+      const justAskedForName = /(?:told me your name|tell me your name|haven't shared your name|share your name)/i.test(prevAssistantMsg);
+      let justLearnedName = false;
+      if (!rememberedName && justAskedForName && /^[a-zA-Z]{2,20}(?:\s+[a-zA-Z]{2,20})?$/.test(lastUserRaw)) {
+        rememberedName = lastUserRaw.split(/\s+/)[0];
+        justLearnedName = true;
+      }
+
+      if (rememberedName) {
+        sharedMemory.name = rememberedName;
+      } else if (useCrossChat && sharedMemory.name) {
+        rememberedName = sharedMemory.name;
+      }
+
+      const factRegex = /(?:remember|my favorite|i like|i love|i live in|i am learning|i'm learning)/i;
+      const currentNotes = userMessages.filter(msg => factRegex.test(msg)).map(msg => msg.trim());
+      currentNotes.forEach(n => {
+        if (!sharedMemory.notes.includes(n)) sharedMemory.notes.push(n);
+      });
+      const rememberedNotes = useCrossChat
+        ? Array.from(new Set([...sharedMemory.notes, ...currentNotes]))
+        : currentNotes;
+
+      let reply = "";
+      let trace = `Local Smart Model · Used system instruction + ${history.length} saved message(s) at temperature ${temperature}.`;
+
+      // Helper: Safe math & percentage evaluator
+      function tryMath(text) {
+        const pctMatch = text.match(/(\d+(?:\.\d+)?)\s*%\s*of\s*(\d+(?:\.\d+)?)/i);
+        if (pctMatch) {
+          const p = parseFloat(pctMatch[1]), n = parseFloat(pctMatch[2]);
+          return `${p}% of ${n} is **${Number(((p / 100) * n).toFixed(4))}**.`;
+        }
+        const cleaned = text.replace(/[^0-9+\-*/().\s]/g, "").trim();
+        if (/[0-9]/.test(cleaned) && /[+\-*/]/.test(cleaned) && /^[0-9+\-*/().\s]+$/.test(cleaned)) {
+          try {
+            const val = Function(`"use strict"; return (${cleaned})`)();
+            if (typeof val === "number" && Number.isFinite(val)) {
+              return `${cleaned} = **${Number(val.toFixed(6))}**`;
+            }
+          } catch (e) {}
+        }
+        return null;
+      }
+
+      // Built-in Local Knowledge Base (scored topic matching)
+      const LOCAL_TOPICS = [
+        {
+          keys: ["token", "tokens", "tokenization"],
+          answer: "Tokens are the small text pieces an LLM reads—roughly 4 characters or ¾ of a word each. Both your conversation history and the bot's reply count toward the token limit.",
+          example: "Example: 'Chatbot' might be 2 tokens ('Chat' + 'bot'), and a 100-word paragraph is around 130 tokens."
+        },
+        {
+          keys: ["system", "instruction", "system prompt", "persona"],
+          answer: "A System Instruction is the top-level rulebook sent before your messages. It controls the bot's role, tone, and boundaries across the whole chat.",
+          example: "Example: Setting 'You are a patient coding tutor' makes the model explain concepts step by step."
+        },
+        {
+          keys: ["rag", "knowledge", "retrieval", "vector", "document", "pdf"],
+          answer: "RAG (Retrieval-Augmented Generation) lets a chatbot answer from your own files: it searches your notes for relevant snippets first, then pastes them into the prompt before generating a reply.",
+          example: "Example: Pasting your company FAQ into the prompt so the bot answers accurately without guessing."
+        },
+        {
+          keys: ["context", "memory", "history", "window"],
+          answer: `LLMs don't have built-in memory between requests, so this app sends all ${history.length} saved message(s) back on every turn to keep the conversation connected.`,
+          example: "Example: That's how I still know your name or earlier questions when you follow up!"
+        },
+        {
+          keys: ["temperature", "randomness", "creative", "hallucinate", "hallucination", "make things up"],
+          answer: `Temperature (currently ${temperature}) controls how predictable or adventurous word choices are. Lower values (0.0–0.3) stay focused, while higher values (0.8–1.0) get more creative—and are more likely to invent unverified facts (hallucinations).`,
+          example: "Example: Try asking about the '2029 Mars Cup' at temperature 0.2 vs 1.0."
+        },
+        {
+          keys: ["machine learning", "neural network", "transformer", "how ai works", "llm", "language model"],
+          answer: "A Large Language Model (LLM) is a neural network (usually a Transformer) trained on massive text datasets to predict the next most likely token in a sequence—allowing it to write, summarize, translate, and reason.",
+          example: "Example: Given 'The sky is...', it predicts 'blue' because it has seen that pattern millions of times."
+        },
+        {
+          keys: ["api", "endpoint", "fetch", "backend"],
+          answer: "An API lets your web app talk to an AI model hosted on a server using HTTP requests (like fetch()). In production, you put the API key on a backend server so users can't see it in the browser.",
+          example: "Example: Our app sends a JSON payload with your systemInstruction and contents array."
+        },
+        {
+          keys: ["html", "css", "javascript", "js", "netlify", "github", "web app"],
+          answer: "This entire chatbot is built with plain HTML (structure), Tailwind CSS (styling), and JavaScript (logic & localStorage). Hosting it on GitHub + Netlify gives you a permanent HTTPS link that works on any phone!",
+          example: "Example: Editing index.html in GitHub triggers an automatic Netlify redeploy in seconds."
+        },
+        {
+          keys: ["python", "coding", "programming", "learn code"],
+          answer: "To build AI apps, JavaScript is great for web interfaces (like this one), while Python is the most popular language for data, machine learning, and AI backends.",
+          example: "Example: Start by building small projects—like adding new rules or features right here!"
+        }
+      ];
+
+      function findBestTopic(query) {
+        let best = null, bestScore = 0;
+        for (const t of LOCAL_TOPICS) {
+          let score = 0;
+          for (const k of t.keys) {
+            if (query.includes(k)) score += k.length;
+          }
+          if (score > bestScore) { bestScore = score; best = t; }
+        }
+        return best;
+      }
+
+      const mathResult = tryMath(lastUserRaw);
+
+      if (justLearnedName || (/(?:my name is|my name's|call me|i am|i'm|remember.*name)/i.test(lastUserMsg) && rememberedName && lastUserRaw.split(/\s+/).length <= 6)) {
+        reply = `Nice to meet you, ${rememberedName}! I've saved your name in device memory so I'll remember it across turns and new chats.`;
+      } else if (/(?:what is my name|what's my name|who am i|do you know my name)/i.test(lastUserMsg)) {
+        reply = rememberedName
+          ? `Your name is ${rememberedName}!`
+          : "You haven't told me your name yet—say 'My name is ...' and I'll remember it.";
+      } else if (/(?:what is your name|what's your name|who are you)/i.test(lastUserMsg)) {
+        reply = `I'm your Local AI Assistant—running right on your device with no API key needed.${rememberedName ? ` Nice chatting with you, ${rememberedName}!` : ""}`;
+      } else if (/(?:what time|current time|time now)/i.test(lastUserMsg)) {
+        reply = `According to your device, the current time is **${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}**.`;
+      } else if (/(?:what date|today's date|what day|day is it)/i.test(lastUserMsg)) {
+        reply = `Today is **${new Date().toLocaleDateString([], { weekday: "long", year: "numeric", month: "long", day: "numeric" })}**.`;
+      } else if (mathResult) {
+        reply = mathResult;
+        trace = "Local Smart Model · Computed math expression locally.";
+      } else if (/(?:tell me a joke|joke|make me laugh)/i.test(lastUserMsg)) {
+        const jokes = [
+          "Why did the AI break up with the rule-based bot? Because it felt like they had no *context* together!",
+          "How many tokens does it take to change a lightbulb? Depends on your prompt—if you're vague, it'll hallucinate a lamp!",
+          "Why was the JavaScript developer sad? Because they didn't Node how to Express themselves."
+        ];
+        reply = jokes[Math.floor(Math.random() * jokes.length)];
+      } else if (/(?:previous|earlier|last chat|what do you remember|what did i say|remember)/i.test(lastUserMsg)) {
+        const prev = useCrossChat ? getPreviousConversationsContext() : { summaryText: "", chatCount: 0, msgCount: 0 };
+        if (/^(?:remember|my favorite|i like|i love|i live|i am learning|i'm learning)/i.test(lastUserMsg)) {
+          reply = `Got it${rememberedName ? `, ${rememberedName}` : ""}! I've saved "${lastUserRaw}" to your device memory.`;
+        } else if (rememberedNotes.length > 0 || rememberedName || prev.chatCount > 0) {
+          const parts = [];
+          if (rememberedName) parts.push(`your name is ${rememberedName}`);
+          if (rememberedNotes.length > 0) parts.push(`you shared: "${rememberedNotes[rememberedNotes.length - 1]}"`);
+          if (prev.chatCount > 0) parts.push(`you have ${prev.chatCount} previous saved chat(s) (${prev.msgCount} messages)`);
+          reply = `From your device memory, I remember that ${parts.join(", and ")}.`;
+        } else {
+          reply = "No saved facts yet—try telling me your name or saying 'Remember I like coding'!";
+        }
+      } else if (lastUserMsg.includes("mars cup") || lastUserMsg.includes("2029")) {
+        if (temperature >= 0.7) {
+          const fakeWinners = [
+            "The 2029 Mars Cup was won by the Olympus Mons Rovers in a 3–2 final!",
+            "The Red Planet United won the 2029 Mars Cup after a dramatic penalty shootout!",
+            "Valles Marineris FC took home the 2029 Mars Cup trophy!"
+          ];
+          const pick = fakeWinners[Math.floor(Math.random() * fakeWinners.length)];
+          reply = `${pick} (Note: At temperature ${temperature}, higher randomness caused me to invent a plausible-sounding answer—a classic AI hallucination.)`;
+          trace += " ⚠️ High temperature + unknown fact = confident fabrication.";
+        } else {
+          reply = "I don't have verified information about a 2029 Mars Cup, and at low temperature I won't guess.";
+          trace += " Low temperature kept the answer grounded.";
+        }
+      } else if (/(?:more|example|explain simply|elaborate|why)/i.test(lastUserMsg) && history.length >= 3) {
+        const prevBotMsg = [...history].reverse().find(m => m.role === "assistant")?.content || "";
+        const prevTopic = findBestTopic(prevBotMsg.toLowerCase());
+        if (prevTopic) {
+          reply = `${prevTopic.example} (Follow-up based on our previous turn!)`;
+        } else {
+          reply = "Could you clarify which part you'd like an example of? I can give examples for tokens, prompts, RAG, context, temperature, or coding!";
+        }
+      } else if (/^(hi|hello|hey|good morning|good evening|good afternoon|yo|sup)\b/i.test(lastUserMsg)) {
+        reply = rememberedName
+          ? `Hey ${rememberedName}! Ask me about AI, do quick math (like '15% of 240'), check the time/date, or tell me something to remember.`
+          : "Hello! I'm your upgraded Local Model—no API key needed. Ask me about AI, math, today's date/time, or tell me your name!";
+      } else if (/^(thanks|thank you|thx|cool|nice|awesome|great)\b/i.test(lastUserMsg)) {
+        reply = `You're welcome${rememberedName ? `, ${rememberedName}` : ""}! Let me know what you'd like to explore next.`;
+      } else if (/^(ok|okay|k|got it|alright|sure|yep|yeah|no|nope)\b[.!]?$/i.test(lastUserMsg)) {
+        reply = `Got it${rememberedName ? `, ${rememberedName}` : ""}! What would you like to try or ask next?`;
+      } else {
+        const topic = findBestTopic(lastUserMsg);
+        if (topic) {
+          if (sysLower.includes("fact-checker") || sysLower.includes("bullet")) {
+            reply = `• ${topic.answer}\n• Grounded note: Ask a follow-up for a concrete example.`;
+          } else if (sysLower.includes("tutor") || sysLower.includes("analog")) {
+            reply = `${topic.answer}\n\n${topic.example}`;
+          } else {
+            reply = topic.answer;
+          }
+        } else {
+          reply = `${rememberedName ? `${rememberedName}, ` : ""}I work completely offline on your device! Right now I can:
+• Answer AI & coding questions (tokens, RAG, LLMs, Python, web apps)
+• Solve math & percentages (e.g. "25 * 48" or "15% of 200")
+• Check the current time/date & remember facts across chats
+
+Try asking one of those—or add a Gemini API key anytime for open-ended web topics!`;
+        }
+      }
+
+      return { reply, trace };
+    }
+
+    // =========================================================================
+    // 3. APP STATE, CONTEXT CARRY-OVER & TOKEN ESTIMATION
+    // =========================================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXtxTEQ5CH7Diy_nmAhXReo2O2Fg5OFZA",
+      authDomain: "aditya-ai-chatbot.firebaseapp.com",
+      projectId: "aditya-ai-chatbot",
+      storageBucket: "aditya-ai-chatbot.firebasestorage.app",
+      messagingSenderId: "127550988788",
+      appId: "1:127550988788:web:e361cad0b6e2bd448599a1",
+      measurementId: "G-RDL9GFPTH6"
+    };
+
+    let fbAuth = null;
+    let fbDb = null;
+    try {
+      if (window.firebase && !firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      if (window.firebase) {
+        fbAuth = firebase.auth();
+        fbDb = firebase.firestore();
+      }
+    } catch (e) {}
+
+    const STORAGE_KEY_THEME = "chatbot_basics_theme_v1";
+    let currentUser = null;
+    let currentUid = null;
+    let authMode = "login"; // "login" or "signup"
+    let STORAGE_KEY_CHATS = "chatbot_basics_chats_v2";
+    let STORAGE_KEY_ACTIVE_CHAT = "chatbot_basics_active_chat_v2";
+    let STORAGE_KEY_SYSTEM = "chatbot_basics_system_v2";
+    let STORAGE_KEY_MEMORY = "chatbot_basics_shared_memory_v2";
+
+    function setAccountStorageKeys(uid) {
+      STORAGE_KEY_CHATS = `chatbot_basics_chats_v2__${uid}`;
+      STORAGE_KEY_ACTIVE_CHAT = `chatbot_basics_active_chat_v2__${uid}`;
+      STORAGE_KEY_SYSTEM = `chatbot_basics_system_v2__${uid}`;
+      STORAGE_KEY_MEMORY = `chatbot_basics_shared_memory_v2__${uid}`;
+    }
+
+    function getPreviousConversationsContext() {
+      const otherChats = Object.values(savedChats)
+        .filter(c => c.id !== activeChatId && Array.isArray(c.messages) && c.messages.length > 0);
+      if (otherChats.length === 0) return { summaryText: "", chatCount: 0, msgCount: 0 };
+
+      let totalMsgs = 0;
+      const lines = otherChats.slice(-5).map(chat => {
+        const recent = chat.messages.slice(-6).map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`).join(" | ");
+        totalMsgs += chat.messages.length;
+        return `[Chat "${chat.title}"]: ${recent}`;
+      });
+      return {
+        summaryText: lines.join("\n"),
+        chatCount: otherChats.length,
+        msgCount: totalMsgs
+      };
+    }
+
+    function applyTheme(isDark) {
+      document.documentElement.classList.toggle("dark", isDark);
+      const btn = document.getElementById("btn-dark-mode");
+      if (btn) btn.textContent = isDark ? "Light Mode" : "Dark Mode";
+    }
+
+    let currentMode = "llm";
+    let savedChats = {};      // { chatId: { id, title, updatedAt, messages: [] } }
+    let activeChatId = "chat_1";
+    let chatHistory = [];     // Points to savedChats[activeChatId].messages
+    let sharedMemory = { name: null, notes: [] }; // Shared across ALL chats on this device
+    let storageAvailable = false;
+    let lastClearedBackup = null;
+
+    function testDeviceStorage() {
+      try {
+        const k = "__cb_test__";
+        localStorage.setItem(k, "1");
+        localStorage.removeItem(k);
+        storageAvailable = true;
+      } catch (err) {
+        storageAvailable = false;
+      }
+
+    }
+
+    function ensureActiveChat() {
+      if (!savedChats[activeChatId]) {
+        const count = Object.keys(savedChats).length + 1;
+        savedChats[activeChatId] = {
+          id: activeChatId,
+          title: `Chat ${count}`,
+          updatedAt: new Date().toISOString(),
+          messages: []
+        };
+      }
+      chatHistory = savedChats[activeChatId].messages;
+    }
+
+    // Load all saved chats and shared device memory from localStorage
+    function loadSavedState() {
+      testDeviceStorage();
+      try {
+        const rawChats = localStorage.getItem(STORAGE_KEY_CHATS);
+        if (rawChats) {
+          const parsed = JSON.parse(rawChats);
+          if (parsed && typeof parsed === "object") savedChats = parsed;
+        }
+        const rawActive = localStorage.getItem(STORAGE_KEY_ACTIVE_CHAT);
+        if (rawActive && savedChats[rawActive]) activeChatId = rawActive;
+
+        const rawMem = localStorage.getItem(STORAGE_KEY_MEMORY);
+        if (rawMem) {
+          const parsedMem = JSON.parse(rawMem);
+          if (parsedMem && typeof parsedMem === "object") {
+            sharedMemory = {
+              name: parsedMem.name || null,
+              notes: Array.isArray(parsedMem.notes) ? parsedMem.notes : []
+            };
+          }
+        }
+        const savedTheme = localStorage.getItem(STORAGE_KEY_THEME);
+        if (savedTheme === "dark") applyTheme(true);
+        const savedSystem = localStorage.getItem(STORAGE_KEY_SYSTEM);
+        if (savedSystem && systemInputEl) systemInputEl.value = savedSystem;
+      } catch (err) {
+        // Fallback silently to in-memory state if storage is blocked
+      }
+      ensureActiveChat();
+      renderChatSelector();
+      renderMemorySummary();
+      if (fbDb && currentUid) {
+        fbDb.collection("users").doc(currentUid).set({
+          email: currentUser || "",
+          chats: savedChats,
+          activeChatId,
+          sharedMemory,
+          systemInstruction: systemInputEl ? systemInputEl.value : "",
+          updatedAt: new Date().toISOString()
+        }, { merge: true }).catch(() => {});
+      }
+    }
+
+    // Save all chats and shared memory to the device (localStorage)
+    function saveHistoryToDevice() {
+      if (savedChats[activeChatId]) {
+        savedChats[activeChatId].updatedAt = new Date().toISOString();
+        const firstUser = savedChats[activeChatId].messages.find(m => m.role === "user");
+        if (firstUser) {
+          savedChats[activeChatId].title = firstUser.content.slice(0, 24) + (firstUser.content.length > 24 ? "..." : "");
+        }
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY_CHATS, JSON.stringify(savedChats));
+        localStorage.setItem(STORAGE_KEY_ACTIVE_CHAT, activeChatId);
+        localStorage.setItem(STORAGE_KEY_MEMORY, JSON.stringify(sharedMemory));
+      } catch (err) {
+        // Ignore storage quota or sandbox errors
+      }
+      renderChatSelector();
+      renderMemorySummary();
+    }
+
+    function renderChatSelector() {
+      const sel = document.getElementById("chat-selector");
+      if (!sel) return;
+      sel.innerHTML = "";
+      Object.values(savedChats).forEach(chat => {
+        const opt = document.createElement("option");
+        opt.value = chat.id;
+        opt.textContent = `${chat.title} (${chat.messages.length})`;
+        if (chat.id === activeChatId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    function renderMemorySummary() {
+      const el = document.getElementById("memory-summary");
+      if (!el) return;
+      const parts = [];
+      if (sharedMemory.name) parts.push(`Name: ${sharedMemory.name}`);
+      if (sharedMemory.notes.length > 0) parts.push(`${sharedMemory.notes.length} note(s)`);
+      el.textContent = parts.length > 0 ? `Shared: ${parts.join(" · ")}` : "No cross-chat facts saved yet";
+    }
+
+    // Rough rule of thumb: 1 token ≈ 4 characters in English
+    function estimateTokens(text) {
+      return Math.max(1, Math.ceil(text.length / 4));
+    }
+
+    // DOM Elements
+    const chatMessagesEl = document.getElementById("chat-messages");
+    const chatFormEl = document.getElementById("chat-form");
+    const userInputEl = document.getElementById("user-input");
+    const systemPromptBar = document.getElementById("system-prompt-bar");
+    const systemInputEl = document.getElementById("system-input");
+    const llmControlsEl = document.getElementById("llm-controls");
+    const tempSliderEl = document.getElementById("temp-slider");
+    const tempValueEl = document.getElementById("temp-value");
+    const statusDotEl = document.getElementById("status-dot");
+    const statusLabelEl = document.getElementById("status-label");
+
+    function formatMessageHtml(raw) {
+      const escaped = String(raw || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      return escaped
+        .replace(/^###\s+(.+)$/gm, '<strong class="block mt-2 mb-1">$1</strong>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/(^|\s)\*([^*\n]+?)\*(?=\s|[.,!?;:]|$)/g, '$1<em>$2</em>');
+    }
+
+    function renderMessages() {
+      chatMessagesEl.innerHTML = "";
+      if (chatHistory.length === 0) {
+        chatMessagesEl.innerHTML = `
+          <div class="text-center py-10 px-4 text-slate-400 text-sm">
+            Send a message below or click a <strong class="text-slate-600">Try:</strong> chip to test the bot!
+          </div>`;
+        return;
+      }
+
+      chatHistory.forEach(msg => {
+        const isUser = msg.role === "user";
+        const wrapper = document.createElement("div");
+        wrapper.className = `flex ${isUser ? "justify-end" : "justify-start"}`;
+
+        const bubble = document.createElement("div");
+        bubble.className = isUser
+          ? "max-w-[88%] bg-indigo-600 text-white text-base leading-relaxed px-4 py-3 rounded-2xl rounded-br-sm shadow-sm whitespace-pre-wrap"
+          : "max-w-[88%] bg-slate-100 text-slate-800 text-base leading-relaxed px-4 py-3 rounded-2xl rounded-bl-sm border border-slate-200 whitespace-pre-wrap";
+        bubble.innerHTML = formatMessageHtml(msg.content);
+
+        wrapper.appendChild(bubble);
+        chatMessagesEl.appendChild(wrapper);
+      });
+
+      chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+    }
+
+    function updateTelemetry(traceText) {}
+
+    let isSending = false;
+    async function handleSend(text) {
+      const trimmed = text.trim();
+      if (!trimmed || isSending) return;
+      isSending = true;
+
+      // 1. Add user message to history
+      chatHistory.push({ role: "user", content: trimmed });
+      renderMessages();
+
+      // Show a temporary "Thinking..." bubble while waiting for a reply
+      const thinkingWrap = document.createElement("div");
+      thinkingWrap.className = "flex justify-start";
+      thinkingWrap.innerHTML = `<div class="bg-slate-100 text-slate-500 text-base px-4 py-2.5 rounded-2xl rounded-bl-sm border border-slate-200 animate-pulse">Thinking...</div>`;
+      chatMessagesEl.appendChild(thinkingWrap);
+      chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+
+      // 2. Route to either Rule-Based or LLM engine
+      let result;
+      try {
+        result = await callLanguageModel(
+          systemInputEl.value,
+          chatHistory,
+          parseFloat(tempSliderEl.value)
+        );
+      } catch (err) {
+        result = {
+          reply: `Something went wrong (${err.message}).`,
+          trace: `Error: ${err.message}`
+        };
+      }
+
+      // 3. Add bot reply to history and save to device so context persists
+      chatHistory.push(result.isError ? { role: "assistant", content: result.reply, isError: true } : { role: "assistant", content: result.reply });
+      saveHistoryToDevice();
+      renderMessages();
+      updateTelemetry(result.trace);
+      isSending = false;
+    }
+
+    // Event Listeners
+    chatFormEl.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const val = userInputEl.value;
+      userInputEl.value = "";
+      handleSend(val);
+    });
+
+    userInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        const val = userInputEl.value;
+        userInputEl.value = "";
+        handleSend(val);
+      }
+    });
+
+    document.querySelectorAll(".quick-prompt").forEach(btn => {
+      btn.addEventListener("click", () => handleSend(btn.dataset.prompt));
+    });
+
+
+    tempSliderEl.addEventListener("input", () => {
+      tempValueEl.textContent = tempSliderEl.value;
+    });
+
+    systemInputEl.addEventListener("input", () => {
+      try {
+        localStorage.setItem(STORAGE_KEY_SYSTEM, systemInputEl.value);
+      } catch (err) {}
+      updateTelemetry();
+    });
+
+    document.getElementById("btn-dark-mode").addEventListener("click", () => {
+      const nextDark = !document.documentElement.classList.contains("dark");
+      applyTheme(nextDark);
+      try {
+        localStorage.setItem(STORAGE_KEY_THEME, nextDark ? "dark" : "light");
+      } catch (err) {}
+    });
+
+    document.querySelectorAll(".preset-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        systemInputEl.value = btn.dataset.preset;
+        try {
+          localStorage.setItem(STORAGE_KEY_SYSTEM, systemInputEl.value);
+        } catch (err) {}
+        updateTelemetry(`Updated System Instruction to "${btn.textContent}" preset.`);
+      });
+    });
+
+    document.getElementById("chat-selector").addEventListener("change", (e) => {
+      activeChatId = e.target.value;
+      ensureActiveChat();
+      saveHistoryToDevice();
+      renderMessages();
+      updateTelemetry(`Switched to "${savedChats[activeChatId].title}" (${chatHistory.length} messages).`);
+    });
+
+    document.getElementById("btn-new-chat").addEventListener("click", () => {
+      const newId = "chat_" + Date.now();
+      const num = Object.keys(savedChats).length + 1;
+      savedChats[newId] = {
+        id: newId,
+        title: `Chat ${num}`,
+        updatedAt: new Date().toISOString(),
+        messages: []
+      };
+      activeChatId = newId;
+      ensureActiveChat();
+      saveHistoryToDevice();
+      renderMessages();
+      const useCross = document.getElementById("toggle-cross-chat")?.checked;
+      updateTelemetry(
+        useCross && sharedMemory.name
+          ? `Started a new chat! Cross-chat memory is ON, so it still knows you (${sharedMemory.name}).`
+          : "Started a new chat."
+      );
+    });
+
+    const exportModal = document.getElementById("export-modal");
+    const modalTitleEl = document.getElementById("modal-title");
+    const modalDescEl = document.getElementById("modal-desc");
+    const modalTextareaEl = document.getElementById("modal-textarea");
+    const btnModalCopy = document.getElementById("btn-modal-copy");
+    let modalFileInfo = { filename: "export.txt", mime: "text/plain", content: "" };
+
+    const btnModalRestore = document.getElementById("btn-modal-restore");
+    function openExportModal(title, desc, filename, mime, content, allowRestore = false) {
+      modalFileInfo = { filename, mime, content };
+      modalTitleEl.textContent = title;
+      modalDescEl.textContent = desc;
+      modalTextareaEl.value = content;
+      btnModalCopy.textContent = "Copy to Clipboard";
+      btnModalRestore.classList.toggle("hidden", !allowRestore);
+      exportModal.classList.remove("hidden");
+    }
+
+    function restoreFromJsonText(jsonText, sourceLabel) {
+      const parsed = JSON.parse(String(jsonText || "{}"));
+      if (parsed.chats && typeof parsed.chats === "object") {
+        savedChats = parsed.chats;
+        const ids = Object.keys(savedChats);
+        if (ids.length > 0) activeChatId = ids[0];
+      }
+      if (parsed.sharedMemory && typeof parsed.sharedMemory === "object") {
+        sharedMemory = {
+          name: parsed.sharedMemory.name || null,
+          notes: Array.isArray(parsed.sharedMemory.notes) ? parsed.sharedMemory.notes : []
+        };
+      }
+      ensureActiveChat();
+      saveHistoryToDevice();
+      renderMessages();
+      updateTelemetry(`Restored ${Object.keys(savedChats).length} chat(s) from ${sourceLabel}.`);
+    }
+
+    btnModalRestore.addEventListener("click", () => {
+      try {
+        restoreFromJsonText(modalTextareaEl.value, "pasted JSON");
+        exportModal.classList.add("hidden");
+      } catch (err) {
+        modalDescEl.textContent = "Invalid JSON—make sure you pasted the complete exported JSON text.";
+      }
+    });
+
+    function triggerDownload(filename, mime, content) {
+      try {
+        const blob = new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    document.getElementById("btn-close-modal").addEventListener("click", () => {
+      exportModal.classList.add("hidden");
+    });
+
+    btnModalCopy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(modalFileInfo.content);
+        btnModalCopy.textContent = "Copied!";
+      } catch (err) {
+        modalTextareaEl.focus();
+        modalTextareaEl.select();
+        modalTextareaEl.setSelectionRange(0, 9999999);
+        try {
+          document.execCommand("copy");
+          btnModalCopy.textContent = "Copied!";
+        } catch (e) {
+          btnModalCopy.textContent = "Tap & Hold Text Above to Copy";
+        }
+      }
+    });
+
+
+
+    document.getElementById("btn-modal-share").addEventListener("click", async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: modalFileInfo.filename, text: modalFileInfo.content });
+        } catch (err) {}
+      } else {
+        modalDescEl.textContent = "Share is not supported in this browser—use 'Copy to Clipboard' or 'Download File'.";
+      }
+    });
+
+    document.getElementById("btn-export-json").addEventListener("click", () => {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        sharedMemory,
+        chats: savedChats
+      };
+      const jsonText = JSON.stringify(payload, null, 2);
+      openExportModal(
+        "Export / Restore Chat History (JSON)",
+        "Copy this JSON to back up your chats, or paste a saved JSON here and tap 'Restore Pasted JSON'.",
+        "chatbot-device-history.json",
+        "application/json",
+        jsonText,
+        true
+      );
+      updateTelemetry("Opened Export JSON view (ready to download or copy).");
+    });
+
+    const importInputEl = document.getElementById("import-json-input");
+    document.getElementById("btn-import-json").addEventListener("click", () => {
+      importInputEl.click();
+    });
+
+    document.getElementById("btn-paste-json").addEventListener("click", () => {
+      openExportModal(
+        "Import Chat History by Paste",
+        "Paste your exported JSON below and tap 'Restore Pasted JSON' to load your chats.",
+        "chatbot-device-history.json",
+        "application/json",
+        "",
+        true
+      );
+      modalTextareaEl.placeholder = "Paste your exported JSON here...";
+      modalTextareaEl.focus();
+    });
+
+    importInputEl.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || "{}"));
+          if (parsed.chats && typeof parsed.chats === "object") {
+            savedChats = parsed.chats;
+            const ids = Object.keys(savedChats);
+            if (ids.length > 0) activeChatId = ids[0];
+          }
+          if (parsed.sharedMemory && typeof parsed.sharedMemory === "object") {
+            sharedMemory = {
+              name: parsed.sharedMemory.name || null,
+              notes: Array.isArray(parsed.sharedMemory.notes) ? parsed.sharedMemory.notes : []
+            };
+          }
+          ensureActiveChat();
+          saveHistoryToDevice();
+          renderMessages();
+          updateTelemetry(`Restored ${Object.keys(savedChats).length} chat(s) from "${file.name}".`);
+        } catch (err) {
+          updateTelemetry("Could not import that file—please select a valid chatbot-device-history.json export.");
+        }
+        importInputEl.value = "";
+      };
+      reader.readAsText(file);
+    });
+
+    const btnUndoClear = document.getElementById("btn-undo-clear");
+    document.getElementById("btn-clear").addEventListener("click", () => {
+      if (chatHistory.length > 0) {
+        lastClearedBackup = { chatId: activeChatId, messages: [...chatHistory] };
+        btnUndoClear.classList.remove("hidden");
+      }
+      savedChats[activeChatId].messages = [];
+      chatHistory = savedChats[activeChatId].messages;
+      saveHistoryToDevice();
+      renderMessages();
+      updateTelemetry("Chat cleared. Click 'Undo Clear' above if you want to restore it.");
+    });
+
+    btnUndoClear.addEventListener("click", () => {
+      if (!lastClearedBackup) return;
+      activeChatId = lastClearedBackup.chatId;
+      ensureActiveChat();
+      savedChats[activeChatId].messages = [...lastClearedBackup.messages];
+      chatHistory = savedChats[activeChatId].messages;
+      lastClearedBackup = null;
+      btnUndoClear.classList.add("hidden");
+      saveHistoryToDevice();
+      renderMessages();
+      updateTelemetry("Restored your cleared chat!");
+    });
+
+    const authOverlayEl = document.getElementById("auth-overlay");
+    const authTabLogin = document.getElementById("auth-tab-login");
+    const authTabSignup = document.getElementById("auth-tab-signup");
+    const authFormEl = document.getElementById("auth-form");
+    const authUsernameEl = document.getElementById("auth-username");
+    const authPasswordEl = document.getElementById("auth-password");
+    const authErrorEl = document.getElementById("auth-error");
+    const authSubmitBtn = document.getElementById("auth-submit-btn");
+    const btnGoogleSignIn = document.getElementById("btn-google-signin");
+    const userBadgeEl = document.getElementById("user-badge");
+    const btnLogoutEl = document.getElementById("btn-logout");
+    const btnSignInHeaderEl = document.getElementById("btn-signin-header");
+    const btnGuestLoginEl = document.getElementById("btn-guest-login");
+    const pageChatEl = document.getElementById("page-chat");
+    const pageHelpEl = document.getElementById("page-help");
+    const btnPageChat = document.getElementById("btn-page-chat");
+    const btnPageHelp = document.getElementById("btn-page-help");
+
+    function switchPage(page) {
+      if (page === "chat") {
+        pageChatEl.classList.remove("hidden");
+        pageHelpEl.classList.add("hidden");
+        btnPageChat.className = "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all bg-white text-indigo-700 shadow-sm";
+        btnPageHelp.className = "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all text-slate-600 hover:text-slate-900";
+      } else {
+        pageChatEl.classList.add("hidden");
+        pageHelpEl.classList.remove("hidden");
+        btnPageHelp.className = "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all bg-white text-indigo-700 shadow-sm";
+        btnPageChat.className = "px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all text-slate-600 hover:text-slate-900";
+      }
+    }
+    btnPageChat.addEventListener("click", () => switchPage("chat"));
+    btnPageHelp.addEventListener("click", () => switchPage("help"));
+
+    function enterGuestMode() {
+      currentUser = "Guest";
+      currentUid = null;
+      setAccountStorageKeys("guest");
+      savedChats = {};
+      activeChatId = "chat_1";
+      chatHistory = [];
+      sharedMemory = { name: null, notes: [] };
+      loadSavedState();
+      renderMessages();
+      userBadgeEl.textContent = "Guest";
+      userBadgeEl.classList.remove("hidden");
+      btnSignInHeaderEl.classList.remove("hidden");
+      btnLogoutEl.classList.add("hidden");
+      authOverlayEl.classList.add("hidden");
+    }
+
+    btnGuestLoginEl.addEventListener("click", enterGuestMode);
+    btnSignInHeaderEl.addEventListener("click", () => {
+      authOverlayEl.classList.remove("hidden");
+      setAuthMode("login");
+    });
+
+    function setAuthMode(mode) {
+      authMode = mode;
+      authErrorEl.classList.add("hidden");
+      if (mode === "login") {
+        authTabLogin.className = "py-1.5 rounded-lg text-xs font-semibold bg-white text-indigo-700 shadow-sm";
+        authTabSignup.className = "py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900";
+        authSubmitBtn.textContent = "Log In";
+      } else {
+        authTabSignup.className = "py-1.5 rounded-lg text-xs font-semibold bg-white text-indigo-700 shadow-sm";
+        authTabLogin.className = "py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900";
+        authSubmitBtn.textContent = "Create Cloud Account";
+      }
+    }
+
+    function showAuthError(msg) {
+      authErrorEl.textContent = msg;
+      authErrorEl.classList.remove("hidden");
+    }
+
+    async function loadCloudUser(user) {
+      const label = user.displayName || user.email || "User";
+      currentUser = user.email || label;
+      currentUid = user.uid;
+      setAccountStorageKeys(user.uid);
+      savedChats = {};
+      activeChatId = "chat_1";
+      chatHistory = [];
+      sharedMemory = { name: null, notes: [] };
+      loadSavedState();
+
+      if (fbDb) {
+        try {
+          const snap = await fbDb.collection("users").doc(user.uid).get();
+          if (snap.exists) {
+            const data = snap.data();
+            if (data.chats && typeof data.chats === "object" && Object.keys(data.chats).length > 0) {
+              savedChats = data.chats;
+            }
+            if (data.activeChatId && savedChats[data.activeChatId]) {
+              activeChatId = data.activeChatId;
+            }
+            if (data.sharedMemory && typeof data.sharedMemory === "object") {
+              sharedMemory = {
+                name: data.sharedMemory.name || null,
+                notes: Array.isArray(data.sharedMemory.notes) ? data.sharedMemory.notes : []
+              };
+            }
+            if (data.systemInstruction && systemInputEl) {
+              systemInputEl.value = data.systemInstruction;
+            }
+            ensureActiveChat();
+            renderChatSelector();
+            renderMemorySummary();
+          } else {
+            // Create initial user profile document in Firestore
+            saveHistoryToDevice();
+          }
+        } catch (err) {
+          updateTelemetry("Signed in, but could not sync Firestore yet—check your Firestore Rules.");
+        }
+      }
+
+      renderMessages();
+      updateTelemetry(
+        chatHistory.length > 0
+          ? `Synced cloud account (${label}) · ${chatHistory.length} message(s) loaded.`
+          : `Signed in as ${label}. Your chats sync securely to the cloud.`
+      );
+
+      userBadgeEl.textContent = label.split("@")[0];
+      userBadgeEl.classList.remove("hidden");
+      btnSignInHeaderEl.classList.add("hidden");
+      btnLogoutEl.classList.remove("hidden");
+      authOverlayEl.classList.add("hidden");
+      authPasswordEl.value = "";
+      authErrorEl.classList.add("hidden");
+    }
+
+    authTabLogin.addEventListener("click", () => setAuthMode("login"));
+    authTabSignup.addEventListener("click", () => setAuthMode("signup"));
+
+    btnGoogleSignIn.addEventListener("click", async () => {
+      if (!fbAuth) return showAuthError("Firebase is not loaded yet—check your internet connection.");
+      authErrorEl.classList.add("hidden");
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await fbAuth.signInWithPopup(provider);
+      } catch (err) {
+        showAuthError(err.message || "Google Sign-In failed. Ensure Google provider & Authorized domain are enabled.");
+      }
+    });
+
+    authFormEl.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!fbAuth) return showAuthError("Firebase is not loaded yet—check your internet connection.");
+      const email = authUsernameEl.value.trim();
+      const password = authPasswordEl.value;
+      if (password.length < 6) {
+        return showAuthError("Password must be at least 6 characters.");
+      }
+      authErrorEl.classList.add("hidden");
+      authSubmitBtn.disabled = true;
+      try {
+        if (authMode === "signup") {
+          await fbAuth.createUserWithEmailAndPassword(email, password);
+        } else {
+          await fbAuth.signInWithEmailAndPassword(email, password);
+        }
+      } catch (err) {
+        showAuthError(err.message || "Authentication failed.");
+      } finally {
+        authSubmitBtn.disabled = false;
+      }
+    });
+
+    btnLogoutEl.addEventListener("click", async () => {
+      if (fbAuth) {
+        try { await fbAuth.signOut(); } catch (e) {}
+      }
+    });
+
+    // Initialize UI on load: restore theme and listen for Firebase Auth state
+    try {
+      if (localStorage.getItem(STORAGE_KEY_THEME) === "dark") applyTheme(true);
+    } catch (e) {}
+
+    if (fbAuth) {
+      fbAuth.onAuthStateChanged((user) => {
+        if (user) {
+          loadCloudUser(user);
+        } else {
+          currentUser = null;
+          currentUid = null;
+          savedChats = {};
+          chatHistory = [];
+          sharedMemory = { name: null, notes: [] };
+          renderMessages();
+          userBadgeEl.classList.add("hidden");
+          btnLogoutEl.classList.add("hidden");
+          authOverlayEl.classList.remove("hidden");
+          setAuthMode("login");
+        }
+      });
+    } else {
+      testDeviceStorage();
+      setAuthMode("login");
+    }
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

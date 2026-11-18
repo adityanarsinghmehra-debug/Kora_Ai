@@ -1,0 +1,6 @@
+{
+  "name": "Kora AI",
+  "description": "An accessible PWA chatbot with real-time Gemini voice interaction and personalized cloud memory.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

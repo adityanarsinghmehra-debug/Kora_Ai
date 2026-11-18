@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user profile, voice, accessibility, and assistant preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "displayName": { "type": "string", "maxLength": 120 },
+        "preferredName": { "type": "string", "maxLength": 80 },
+        "communicationStyle": { "type": "string", "enum": ["balanced", "concise", "detailed", "step-by-step"] },
+        "voiceName": { "type": "string", "enum": ["Zephyr", "Kore", "Puck", "Charon", "Fenrir"] },
+        "systemInstruction": { "type": "string", "maxLength": 2000 },
+        "crossChatMemoryEnabled": { "type": "boolean" },
+        "theme": { "type": "string", "enum": ["light", "dark", "high-contrast"] },
+        "fontSize": { "type": "string", "enum": ["normal", "large"] },
+        "autoReadResponses": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "preferredName", "communicationStyle", "voiceName", "systemInstruction", "crossChatMemoryEnabled", "theme", "fontSize", "autoReadResponses", "createdAt", "updatedAt"]
+    },
+    "UserMemory": {
+      "title": "UserMemory",
+      "description": "Personalized long-term memory entry stored for a specific user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "content": { "type": "string", "minLength": 1, "maxLength": 600 },
+        "category": { "type": "string", "enum": ["preference", "fact", "goal", "context"] },
+        "source": { "type": "string", "enum": ["auto", "manual", "voice"] },
+        "pinned": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "content", "category", "source", "pinned", "createdAt", "updatedAt"]
+    },
+    "ChatSession": {
+      "title": "ChatSession",
+      "description": "Conversation thread metadata owned by a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "systemInstruction": { "type": "string", "maxLength": 2000 },
+        "messageCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "systemInstruction", "messageCount", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Individual text or voice transcript message in a chat session.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "chatId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "mode": { "type": "string", "enum": ["text", "voice"] },
+        "content": { "type": "string", "minLength": 1, "maxLength": 16000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "chatId", "role", "mode", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profile and preference document."
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": { "$ref": "#/entities/UserMemory" },
+      "description": "Personalized user memory records accessible only by the owning user."
+    },
+    "/users/{userId}/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/ChatSession" },
+      "description": "Saved conversation threads belonging to the owning user."
+    },
+    "/users/{userId}/chats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Messages inside a user's conversation thread."
+    }
+  }
+}

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="koraMaskBg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="55%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#172554"/>
+    </linearGradient>
+    <linearGradient id="koraMaskAccent" x1="156" y1="156" x2="356" y2="356" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed background for adaptive maskable safe zone -->
+  <rect width="512" height="512" fill="url(#koraMaskBg)"/>
+  <!-- Centered inside 72% safe zone -->
+  <g transform="translate(76, 76) scale(0.703125)">
+    <path d="M256 104C167.634 104 96 170.262 96 252C96 293.75 114.696 331.464 144.812 358.316L128 416L194.286 389.486C213.688 396.292 234.422 400 256 400C344.366 400 416 333.738 416 252C416 170.262 344.366 104 256 104Z" fill="#F8FAFC"/>
+    <rect x="180" y="228" width="24" height="48" rx="12" fill="#0F172A"/>
+    <rect x="222" y="188" width="24" height="128" rx="12" fill="url(#koraMaskAccent)"/>
+    <rect x="264" y="206" width="24" height="92" rx="12" fill="#0F172A"/>
+    <rect x="306" y="224" width="24" height="56" rx="12" fill="url(#koraMaskAccent)"/>
+  </g>
+</svg>

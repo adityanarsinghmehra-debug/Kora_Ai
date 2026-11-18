@@ -1,0 +1,187 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Shared Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isSignedIn()
+        && request.auth.uid == userId
+        && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Blueprints
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'preferredName', 'communicationStyle', 'voiceName',
+          'systemInstruction', 'crossChatMemoryEnabled', 'theme', 'fontSize',
+          'autoReadResponses', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'email', 'displayName', 'preferredName', 'communicationStyle',
+          'voiceName', 'systemInstruction', 'crossChatMemoryEnabled', 'theme',
+          'fontSize', 'autoReadResponses', 'createdAt', 'updatedAt'
+        ])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && (!('email' in data) || (data.email is string && data.email.size() <= 254))
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120))
+        && data.preferredName is string && data.preferredName.size() <= 80
+        && data.communicationStyle in ['balanced', 'concise', 'detailed', 'step-by-step']
+        && data.voiceName in ['Zephyr', 'Kore', 'Puck', 'Charon', 'Fenrir']
+        && data.systemInstruction is string && data.systemInstruction.size() <= 2000
+        && data.crossChatMemoryEnabled is bool
+        && data.theme in ['light', 'dark', 'high-contrast']
+        && data.fontSize in ['normal', 'large']
+        && data.autoReadResponses is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserMemory(data, userId) {
+      return data.keys().hasAll(['userId', 'content', 'category', 'source', 'pinned', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'content', 'category', 'source', 'pinned', 'createdAt', 'updatedAt'])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && data.content is string && data.content.size() >= 1 && data.content.size() <= 600
+        && data.category in ['preference', 'fact', 'goal', 'context']
+        && data.source in ['auto', 'manual', 'voice']
+        && data.pinned is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidChatSession(data, userId) {
+      return data.keys().hasAll(['userId', 'title', 'systemInstruction', 'messageCount', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'title', 'systemInstruction', 'messageCount', 'createdAt', 'updatedAt'])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+        && data.systemInstruction is string && data.systemInstruction.size() <= 2000
+        && data.messageCount is int && data.messageCount >= 0 && data.messageCount <= 5000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidChatMessage(data, userId, chatId) {
+      return data.keys().hasAll(['userId', 'chatId', 'role', 'mode', 'content', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'chatId', 'role', 'mode', 'content', 'createdAt'])
+        && data.userId == userId
+        && data.chatId == chatId
+        && isValidId(data.userId)
+        && isValidId(data.chatId)
+        && data.role in ['user', 'assistant']
+        && data.mode in ['text', 'voice']
+        && data.content is string && data.content.size() >= 1 && data.content.size() <= 16000
+        && data.createdAt is timestamp;
+    }
+
+    // Users Collection (Strictly Owner-Only, No Root Listing)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isVerifiedOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isVerifiedOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isVerifiedOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'email', 'displayName', 'preferredName', 'communicationStyle',
+          'voiceName', 'systemInstruction', 'crossChatMemoryEnabled',
+          'theme', 'fontSize', 'autoReadResponses', 'updatedAt'
+        ]);
+      allow delete: if isValidId(userId) && isVerifiedOwner(userId);
+
+      // Personalized Memories Subcollection
+      match /memories/{memoryId} {
+        allow get: if isValidId(userId) && isValidId(memoryId) && isVerifiedOwner(userId);
+        allow list: if isValidId(userId) && isVerifiedOwner(userId) && existing().userId == userId;
+        allow create: if isValidId(userId)
+          && isValidId(memoryId)
+          && isVerifiedOwner(userId)
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && isValidUserMemory(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId)
+          && isValidId(memoryId)
+          && isVerifiedOwner(userId)
+          && isValidUserMemory(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['content', 'category', 'pinned', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['pinned', 'updatedAt'])
+          );
+        allow delete: if isValidId(userId) && isValidId(memoryId) && isVerifiedOwner(userId);
+      }
+
+      // Chat Sessions Subcollection
+      match /chats/{chatId} {
+        allow get: if isValidId(userId) && isValidId(chatId) && isVerifiedOwner(userId);
+        allow list: if isValidId(userId) && isVerifiedOwner(userId) && existing().userId == userId;
+        allow create: if isValidId(userId)
+          && isValidId(chatId)
+          && isVerifiedOwner(userId)
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && isValidChatSession(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId)
+          && isValidId(chatId)
+          && isVerifiedOwner(userId)
+          && isValidChatSession(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'systemInstruction', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'messageCount', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['messageCount', 'updatedAt'])
+          );
+        allow delete: if isValidId(userId) && isValidId(chatId) && isVerifiedOwner(userId);
+
+        // Chat Messages Subcollection
+        match /messages/{messageId} {
+          allow get: if isValidId(userId) && isValidId(chatId) && isValidId(messageId) && isVerifiedOwner(userId);
+          allow list: if isValidId(userId) && isValidId(chatId) && isVerifiedOwner(userId) && existing().userId == userId;
+          allow create: if isValidId(userId)
+            && isValidId(chatId)
+            && isValidId(messageId)
+            && isVerifiedOwner(userId)
+            && get(/databases/$(database)/documents/users/$(userId)/chats/$(chatId)).data.userId == userId
+            && isValidChatMessage(incoming(), userId, chatId)
+            && incoming().createdAt == request.time;
+          allow update: if false;
+          allow delete: if isValidId(userId) && isValidId(chatId) && isValidId(messageId) && isVerifiedOwner(userId);
+        }
+      }
+    }
+  }
+}
