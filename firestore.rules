@@ -120,7 +120,7 @@ service cloud.firestore {
       // Personalized Memories Subcollection
       match /memories/{memoryId} {
         allow get: if isValidId(userId) && isValidId(memoryId) && isVerifiedOwner(userId);
-        allow list: if isValidId(userId) && isVerifiedOwner(userId) && existing().userId == userId;
+        allow list: if isValidId(userId) && isVerifiedOwner(userId);
         allow create: if isValidId(userId)
           && isValidId(memoryId)
           && isVerifiedOwner(userId)
@@ -145,7 +145,7 @@ service cloud.firestore {
       // Chat Sessions Subcollection
       match /chats/{chatId} {
         allow get: if isValidId(userId) && isValidId(chatId) && isVerifiedOwner(userId);
-        allow list: if isValidId(userId) && isVerifiedOwner(userId) && existing().userId == userId;
+        allow list: if isValidId(userId) && isVerifiedOwner(userId);
         allow create: if isValidId(userId)
           && isValidId(chatId)
           && isVerifiedOwner(userId)
@@ -170,7 +170,7 @@ service cloud.firestore {
         // Chat Messages Subcollection
         match /messages/{messageId} {
           allow get: if isValidId(userId) && isValidId(chatId) && isValidId(messageId) && isVerifiedOwner(userId);
-          allow list: if isValidId(userId) && isValidId(chatId) && isVerifiedOwner(userId) && existing().userId == userId;
+          allow list: if isValidId(userId) && isValidId(chatId) && isVerifiedOwner(userId);
           allow create: if isValidId(userId)
             && isValidId(chatId)
             && isValidId(messageId)

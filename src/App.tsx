@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
 import {
+  BookOpen,
+  Brain,
   ChevronDown,
   ChevronUp,
   Eye,
   Menu,
+  MessageSquare,
   Mic,
+  Radio,
   RotateCcw,
   Send,
   SlidersHorizontal,
@@ -26,6 +30,7 @@ import { auth, googleProvider } from './lib/firebase';
 import { generateOfflineReply } from './lib/localFallback';
 import {
   clearCloudChatMessages,
+  clearLocalState,
   createCloudChat,
   createCloudMemory,
   createCloudMessage,
@@ -64,6 +69,19 @@ const QUICK_PROMPTS = [
 
 function makeId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function formatSyncError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  try {
+    const parsed = JSON.parse(raw) as { error?: string };
+    if (parsed && typeof parsed.error === 'string') {
+      return `Cloud sync error: ${parsed.error} Using local cache for now.`;
+    }
+  } catch {
+    // Not JSON
+  }
+  return raw || 'Cloud sync unavailable; using local cache.';
 }
 
 export default function App() {
@@ -126,7 +144,63 @@ export default function App() {
             fetchCloudChats(user.uid),
           ]);
 
-          let nextChats = cloudChats;
+          // Merge Guest Mode local chats & memories into Google account on sign-in
+          const guestLocal = loadLocalState('guest', createDefaultProfile('guest'));
+          const mergedMemories = [...cloudMemories];
+          for (const gm of guestLocal.memories) {
+            const exists = mergedMemories.some(
+              (cm) => cm.content.trim().toLowerCase() === gm.content.trim().toLowerCase()
+            );
+            if (!exists && gm.content.trim()) {
+              const migratedMem: UserMemory = {
+                ...gm,
+                id: sanitizeId(gm.id || makeId('mem')),
+                userId: sanitizeId(user.uid),
+              };
+              await createCloudMemory(user.uid, migratedMem);
+              mergedMemories.unshift(migratedMem);
+            }
+          }
+
+          let nextChats = [...cloudChats];
+          const migratedMessagesMap: Record<string, ChatMessage[]> = {};
+          const nonEmptyGuestChats = guestLocal.chats.filter(
+            (gc) => (guestLocal.messagesByChat[gc.id] || []).length > 0
+          );
+
+          for (const gc of nonEmptyGuestChats) {
+            const guestMsgs = guestLocal.messagesByChat[gc.id] || [];
+            const cloudChatId = sanitizeId(`migrated_${gc.id}`);
+            if (!nextChats.some((c) => c.id === cloudChatId)) {
+              const newCloudChat: ChatSession = {
+                ...gc,
+                id: cloudChatId,
+                userId: sanitizeId(user.uid),
+                messageCount: guestMsgs.length,
+              };
+              await createCloudChat(user.uid, newCloudChat);
+              for (const m of guestMsgs) {
+                const cloudMsg: ChatMessage = {
+                  ...m,
+                  id: sanitizeId(m.id || makeId('msg')),
+                  userId: sanitizeId(user.uid),
+                  chatId: cloudChatId,
+                };
+                await createCloudMessage(user.uid, cloudChatId, cloudMsg);
+              }
+              nextChats.unshift(newCloudChat);
+              migratedMessagesMap[cloudChatId] = guestMsgs.map((m) => ({
+                ...m,
+                userId: sanitizeId(user.uid),
+                chatId: cloudChatId,
+              }));
+            }
+          }
+
+          if (guestLocal.memories.length > 0 || nonEmptyGuestChats.length > 0) {
+            clearLocalState('guest');
+          }
+
           if (nextChats.length === 0) {
             const firstChat: ChatSession = {
               id: makeId('chat'),
@@ -142,18 +216,20 @@ export default function App() {
           }
 
           const firstChatId = nextChats[0].id;
-          const firstMsgs = await fetchCloudMessages(user.uid, firstChatId);
+          const firstMsgs =
+            migratedMessagesMap[firstChatId] || (await fetchCloudMessages(user.uid, firstChatId));
 
+          setAuthError(null);
           setProfile(cloudProfile);
-          setMemories(cloudMemories);
+          setMemories(mergedMemories);
           setChats(nextChats);
           setActiveChatId(firstChatId);
-          setMessagesByChat({ [firstChatId]: firstMsgs });
+          setMessagesByChat({ ...migratedMessagesMap, [firstChatId]: firstMsgs });
           saveLocalState(user.uid, {
             profile: cloudProfile,
-            memories: cloudMemories,
+            memories: mergedMemories,
             chats: nextChats,
-            messagesByChat: { [firstChatId]: firstMsgs },
+            messagesByChat: { ...migratedMessagesMap, [firstChatId]: firstMsgs },
           });
         } catch (err) {
           // Fall back to cached local copy if Firestore fails temporarily
@@ -180,7 +256,7 @@ export default function App() {
           setChats(ensuredChats);
           setActiveChatId(ensuredChats[0].id);
           setMessagesByChat(local.messagesByChat);
-          setAuthError(err instanceof Error ? err.message : 'Cloud sync unavailable; using local cache.');
+          setAuthError(formatSyncError(err));
         }
       } else {
         const local = loadLocalState('guest', createDefaultProfile('guest'));
@@ -793,11 +869,11 @@ export default function App() {
   };
 
   const largeText = profile.fontSize === 'large';
-  const navItems: { id: WorkspaceTab; label: string }[] = [
-    { id: 'chat', label: 'Chat' },
-    { id: 'voice', label: 'Voice' },
-    { id: 'memory', label: 'Memory' },
-    { id: 'guide', label: 'Guide' },
+  const navItems: { id: WorkspaceTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
+    { id: 'voice', label: 'Voice', icon: Radio },
+    { id: 'memory', label: 'Memory', icon: Brain },
+    { id: 'guide', label: 'Guide', icon: BookOpen },
   ];
 
   return (
@@ -810,7 +886,7 @@ export default function App() {
         Skip to main content
       </a>
 
-      {/* Top Bar Contract: [Brand] — [Nav Links] — [Primary Action] */}
+      {/* Top Bar Contract: [Brand] — [Nav Links (md+)] — [Primary Action] */}
       <header className="h-14 shrink-0 bg-white dark:bg-slate-900 high-contrast:bg-black border-b border-slate-200 dark:border-slate-800 high-contrast:border-yellow-400 px-3 sm:px-6 flex items-center justify-between gap-4 sm:gap-8">
         <div className="flex items-center gap-2.5 shrink-0">
           <button
@@ -836,7 +912,7 @@ export default function App() {
           </a>
         </div>
 
-        <nav aria-label="Primary workspace navigation" className="flex items-center gap-3 sm:gap-6 overflow-x-auto">
+        <nav aria-label="Primary workspace navigation" className="hidden md:flex items-center gap-6">
           {navItems.map((item) => {
             const active = activeTab === item.id;
             return (
@@ -864,7 +940,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => void handleSignOut()}
-              className="min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 high-contrast:border-yellow-400 text-xs font-semibold text-slate-800 dark:text-slate-100 high-contrast:text-yellow-300 hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap shrink-0"
+              className="min-h-[44px] px-3 sm:px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 high-contrast:border-yellow-400 text-xs font-semibold text-slate-800 dark:text-slate-100 high-contrast:text-yellow-300 hover:bg-slate-100 dark:hover:bg-slate-800 whitespace-nowrap shrink-0"
             >
               Sign Out ({(fbUser.displayName || fbUser.email || 'Account').split(' ')[0]})
             </button>
@@ -872,9 +948,10 @@ export default function App() {
             <button
               type="button"
               onClick={() => void handleSignInGoogle()}
-              className="min-h-[44px] px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-sky-500 dark:hover:bg-sky-400 high-contrast:bg-yellow-400 high-contrast:text-black text-white dark:text-slate-950 text-xs font-semibold transition-colors whitespace-nowrap shrink-0"
+              className="min-h-[44px] px-3.5 sm:px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-sky-500 dark:hover:bg-sky-400 high-contrast:bg-yellow-400 high-contrast:text-black text-white dark:text-slate-950 text-xs font-semibold transition-colors whitespace-nowrap shrink-0"
             >
-              Sign In with Google
+              <span className="sm:hidden">Sign In</span>
+              <span className="hidden sm:inline">Sign In with Google</span>
             </button>
           )}
         </div>
@@ -1308,6 +1385,33 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Mobile Bottom Tab Bar (< md) */}
+      <nav
+        aria-label="Mobile workspace navigation"
+        className="md:hidden shrink-0 grid grid-cols-4 bg-white dark:bg-slate-900 high-contrast:bg-black border-t border-slate-200 dark:border-slate-800 high-contrast:border-yellow-400 pb-[env(safe-area-inset-bottom)]"
+      >
+        {navItems.map((item) => {
+          const active = activeTab === item.id;
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveTab(item.id)}
+              aria-current={active ? 'page' : undefined}
+              className={`min-h-[52px] flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
+                active
+                  ? 'text-sky-600 dark:text-sky-400 high-contrast:text-yellow-300 font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 high-contrast:text-white'
+              }`}
+            >
+              <Icon className="w-5 h-5" aria-hidden="true" />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
       <OfflineIndicator />
 

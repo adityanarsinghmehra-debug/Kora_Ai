@@ -147,6 +147,18 @@ export function saveLocalState(
   }
 }
 
+export function clearLocalState(scopeKey: string) {
+  const keys = getLocalKeys(scopeKey);
+  try {
+    localStorage.removeItem(keys.profile);
+    localStorage.removeItem(keys.memories);
+    localStorage.removeItem(keys.chats);
+    localStorage.removeItem(keys.messages);
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 // Cloud Firestore Operations (strictly validated against firebase-blueprint.json & firestore.rules)
 export async function fetchOrCreateCloudProfile(
   uid: string,
